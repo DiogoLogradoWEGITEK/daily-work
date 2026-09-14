@@ -275,16 +275,18 @@
       } catch (e) { console.warn('[daily] loadData failed', e); }
     }
 
+    const TIME_OPTS = { timeZone: 'Europe/Lisbon', hour: '2-digit', minute: '2-digit', hour12: false };
+    const DAY_OPTS = { timeZone: 'Europe/Lisbon', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false };
+
     function formatWindow(win) {
       if (!win || !win.since) return '';
-      const opts = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
-      const since = new Date(win.since).toLocaleString(undefined, opts);
-      const until = win.until ? new Date(win.until).toLocaleString(undefined, opts) : 'now';
+      const since = new Date(win.since).toLocaleString('pt-PT', DAY_OPTS);
+      const until = win.until ? new Date(win.until).toLocaleString('pt-PT', DAY_OPTS) : 'now';
       return `${since} → ${until}`;
     }
 
     function fmtTime(iso) {
-      return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      return new Date(iso).toLocaleTimeString('pt-PT', TIME_OPTS);
     }
 
     const TYPE_LABELS = { feat: 'new', fix: 'fixes', perf: 'faster', refactor: 'cleanups', docs: 'docs', test: 'tests', chore: 'housekeeping', ci: 'ci', build: 'build', style: 'style', revert: 'reverts' };
@@ -332,7 +334,8 @@
               const t = commitType(c);
               return commitSubject(c) + (t !== 'other' && TYPE_LABELS[t] ? ' (' + TYPE_LABELS[t] + ')' : '');
             });
-          lines.push('In ' + repo + ': ' + items.join(', ') + '.');
+          lines.push('Commits in ' + repo + ':');
+          items.forEach(item => lines.push('- ' + item));
         });
       }
 
@@ -340,10 +343,12 @@
       const mergedPrs = prs.filter(isMerged);
       if (mergedPrs.length) {
         lines.push('');
-        lines.push('Merged PRs: ' + mergedPrs.map(p => '#' + p.number + ' ' + p.title).join(', ') + '.');
+        lines.push('Merged PRs:');
+        mergedPrs.forEach(p => lines.push('- #' + p.number + ' ' + p.title));
       }
       if (openPrs.length) {
-        lines.push('PRs still open: ' + openPrs.map(p => '#' + p.number + ' ' + p.title).join(', ') + '.');
+        lines.push('PRs still open:');
+        openPrs.forEach(p => lines.push('- #' + p.number + ' ' + p.title));
       }
       if (!lines.length) lines.push('No commits or PRs since ' + windowDayLabel() + '.');
       return lines.join('\n');
@@ -358,7 +363,7 @@
       document.getElementById('title').innerHTML = 'Daily <span class="accent">Work</span>';
       document.getElementById('window').textContent = formatWindow(dailyData.window);
       document.getElementById('updated').textContent =
-        'updated ' + new Date(dailyData.updatedAt).toLocaleString() + ' · user ' + ((window.CONFIG || {}).github || '');
+        'updated ' + new Date(dailyData.updatedAt).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon', hour12: false }) + ' · user ' + ((window.CONFIG || {}).github || '');
 
       const commits = dailyData.commits || [];
       const prs = dailyData.prs || [];
