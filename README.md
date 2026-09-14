@@ -36,9 +36,9 @@ Open `index.html` directly - with no `gistId` configured it loads `daily-data.ex
 
 ## Workflows
 
-| Workflow               | Schedule          | Purpose                                                           |
-| ---------------------- | ----------------- | ----------------------------------------------------------------- |
-| `deploy.yml`           | On push to `main` | Deploys to GitHub Pages, injects secrets, stamps git SHA          |
+| Workflow               | Schedule                      | Purpose                                                    |
+| ---------------------- | ----------------------------- | ---------------------------------------------------------- |
+| `deploy.yml`           | On push to `main`             | Deploys to GitHub Pages, injects secrets, stamps git SHA   |
 | `fetch-daily-work.yml` | Mon-Fri 11:23/13:23/14:23 UTC | Fetches commits + PRs since the window start into the Gist |
 
 ## Notes & limitations
