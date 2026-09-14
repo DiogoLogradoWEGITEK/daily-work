@@ -89,11 +89,11 @@ jobs:
           echo "PR merged query: $PR_MERGED_QUERY"
           echo "PR open query:   $PR_OPEN_QUERY"
 
-          # Commits (REST search — default-branch commits only)
+          # Commits (REST search — default-branch commits only, up to 50)
           HTTP=$(curl -s -w '%{http_code}' -o /tmp/commits-raw.json \
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/search/commits?q=$(jq -rn --arg q "$COMMIT_QUERY" '$q|@uri')") || true
+            "https://api.github.com/search/commits?per_page=50&q=$(jq -rn --arg q "$COMMIT_QUERY" '$q|@uri')") || true
           echo "Commit search HTTP: $HTTP"
           if [ "$HTTP" = "200" ]; then
             jq '[.items[] | {sha: .sha[0:7], repo: .repository.name, date: .commit.author.date, headline: (.commit.message | split("\n")[0]), message: .commit.message, url: .html_url}]' /tmp/commits-raw.json > /tmp/commits.json
@@ -106,7 +106,7 @@ jobs:
 
           # PRs (GraphQL — same query family as DailyDevTeamOrganizer).
           # Two searches: merged since window + open (in-progress work shows in the digest).
-          GRAPHQL_QUERY='query($q:String!){search(query:$q,type:ISSUE,first:10){nodes{...on PullRequest{title number repository{name} body headRefName baseRefName state mergedAt commits(last:5){nodes{commit{messageHeadline}}}}}}}'
+          GRAPHQL_QUERY='query($q:String!){search(query:$q,type:ISSUE,first:20){nodes{...on PullRequest{title number repository{name} body headRefName baseRefName state mergedAt commits(last:5){nodes{commit{messageHeadline}}}}}}}'
           PR_SHAPE='[(.data.search.nodes//[])[]|select(.title!=null)|(.body//""|gsub("[*#`_~]";"")|gsub("[\r\n]+";" ")|gsub("  +";" ")|ltrimstr(" ")) as $b|{title,number,repo:.repository.name,body:(if ($b|length)>0 then ($b|.[0:200]) else ([(.commits.nodes//[])[].commit.messageHeadline]|join(" \u00b7 ")|.[0:200]) end),branch:.headRefName,baseBranch:.baseRefName,state,mergedAt}]'
 
           fetch_prs() {
@@ -144,8 +144,10 @@ jobs:
             echo "[]" > /tmp/prs-open.json
           fi
 
-          # Dedupe by repo+number (PR numbers collide across repos), newest first
-          jq -s 'add | unique_by(.repo + "#" + (.number|tostring)) | sort_by(.mergedAt // .updatedAt // "") | reverse' \
+          # Dedupe by repo+number (PR numbers collide across repos), merged entries
+          # win over stale open ones (search indexing can lag behind a merge),
+          # then newest first
+          jq -s 'add | sort_by(.mergedAt // "") | reverse | unique_by(.repo + "#" + (.number|tostring)) | sort_by(.mergedAt // .updatedAt // "") | reverse' \
             /tmp/prs-merged.json /tmp/prs-open.json > /tmp/prs.json
           echo "PRs found: $(jq 'length' /tmp/prs.json) (merged: $(jq 'length' /tmp/prs-merged.json), open: $(jq 'length' /tmp/prs-open.json))"
 
