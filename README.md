@@ -26,6 +26,8 @@ A GitHub Pages **experiment in personal activity feeds**: a static page that lis
 | `GIST_ID`         | Gist ID that caches the JSON                           | `a1b2c3d4...`   |
 | `STANDUP_TIME`    | Window start, `HH:MM` 24h                              | `15:00`         |
 | `STANDUP_TZ`      | IANA timezone of the window start                      | `Europe/Lisbon` |
+| `GROQ_KEY`        | Optional - Groq API key for the AI resume              | `gsk_...`       |
+| `AI_MODEL`        | Optional - Groq model id                               | `llama-3.3-70b-versatile` |
 
 4. Enable **Settings → Pages → Source: GitHub Actions**, then push to `main`.
 5. Run **Actions → Fetch Daily Work** manually once (optional `since` override for the window start).
@@ -33,6 +35,10 @@ A GitHub Pages **experiment in personal activity feeds**: a static page that lis
 ## Local preview
 
 Open `index.html` directly - with no `gistId` configured it loads `daily-data.example.js` mock data so you can see the layout and digest builder without any setup.
+
+## AI resume
+
+Optional. When the `GROQ_KEY` secret exists (free key from [console.groq.com](https://console.groq.com)), the fetch workflow sends the commit/PR headlines to Groq (`llama-3.3-70b-versatile` by default, override with `AI_MODEL`) and stores a first-person standup script in the `aiResume` field. The page renders it in its own "AI Resume" section below the Speech digest. Any failure (missing key, rate limit, timeout) just leaves the field empty and the section hidden - the fetch itself is unaffected.
 
 ## Workflows
 

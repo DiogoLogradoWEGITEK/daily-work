@@ -38,6 +38,8 @@ jobs:
       GH_SEARCH_SCOPE: ${{ secrets.GH_SEARCH_SCOPE }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
       GIST_ID: ${{ secrets.GIST_ID }}
+      GROQ_KEY: ${{ secrets.GROQ_KEY }}
+      AI_MODEL: ${{ secrets.AI_MODEL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -175,12 +177,20 @@ jobs:
             echo "  '+ scope' > 0, '+ scope + since' = 0 → work exists but outside the window or on non-default branches"
           fi
 
-          # Merge into daily-data.json
-          # TODO: AI RESUME — optionally send commits+prs to GitHub Models here and
-          # store the generated speech in the speech field instead of ""
-          jq -nc --rawfile commits /tmp/commits.json --rawfile prs /tmp/prs.json \
+          # AI resume (optional, Groq): turns the fetched work into a first-person
+          # standup speech stored in aiResume. Skipped when GROQ_KEY is unset;
+          # on any failure aiResume stays empty and the page just hides the section.
+          if [ -n "$GROQ_KEY" ] && { [ "$(jq 'length' /tmp/commits.json)" -gt 0 ] || [ "$(jq 'length' /tmp/prs.json)" -gt 0 ]; }; then
+            node "${GITHUB_WORKSPACE}/scripts/generate-ai-resume.js" || echo "::warning::AI resume generation failed - continuing without it"
+          else
+            echo -n "" > /tmp/ai-resume.txt
+          fi
+
+          # Merge into daily-data.json (speech is the no-AI template slot,
+          # aiResume is the Groq-generated one - kept separate on purpose)
+          jq -nc --rawfile commits /tmp/commits.json --rawfile prs /tmp/prs.json --rawfile aiResume /tmp/ai-resume.txt \
             --arg updatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg since "$SINCE" --arg until "$UNTIL" \
-            '{updatedAt:$updatedAt, window:{since:$since, until:$until}, commits:($commits|fromjson), prs:($prs|fromjson), speech:""}' \
+            '{updatedAt:$updatedAt, window:{since:$since, until:$until}, commits:($commits|fromjson), prs:($prs|fromjson), speech:"", aiResume:$aiResume}' \
           > /tmp/daily-data.json
 
           # Patch Gist (single token: GH_TOKEN)

@@ -13,7 +13,9 @@ if (!window.DAILY_DATA_EXAMPLE) {
       { title: "Add user authentication flow", number: 142, repo: "my-app", branch: "feat/user-auth", baseBranch: "main", state: "merged", mergedAt: "2026-09-10T18:31:00Z", body: "Implements JWT-based auth with refresh tokens. Added login, refresh, and logout endpoints. Closes #140 from sprint 12." },
       { title: "Add composite index to users table", number: 97, repo: "backend-api", branch: "perf/users-index", baseBranch: "main", state: "merged", mergedAt: "2026-09-11T09:12:00Z", body: "" }
     ],
-    // TODO: AI RESUME — filled by the fetch workflow (GitHub Models); page prefers it over the built-in template
+    // TODO: AI RESUME — aiResume is filled by the fetch workflow (Groq) when GROQ_KEY is set;
+    // the page shows it in its own section below the Speech digest
+    aiResume: "Commits:\n- Added refresh token rotation to the auth flow in my-app, tokens now rotate on every use with a small grace window for active sessions\n- Fixed the session expiry handling for mobile Safari in my-app, some IdPs return expires_in in milliseconds\n- Covered the clock skew scenarios with tests in my-app\n- Bumped pg to 8.12 in backend-api and added a composite index on email + created_at, user lookup went from 340ms to 12ms\n\nPull requests:\n- Merged #142 in my-app, the JWT auth flow with login, refresh and logout endpoints\n- Merged #97 in backend-api, the composite users index\n\nNext: roll the auth changes out to the mobile clients and watch the refresh token metrics for a day",
     speech: ""
   };
 }

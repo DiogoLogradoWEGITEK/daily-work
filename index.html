@@ -210,6 +210,8 @@
       transition: color 0.15s, border-color 0.15s;
     }
     .speech-copy:hover { color: #fff; border-color: #777; }
+    .ai-box .speech-head { border-bottom-color: #3a5a3a; }
+    .ai-box .speech-text { color: #d9e4d9; }
     .speech-text {
       margin: 0;
       padding: 14px 18px;
@@ -367,13 +369,21 @@
 
       const commits = dailyData.commits || [];
       const prs = dailyData.prs || [];
+      const aiResume = (dailyData.aiResume || '').trim();
 
-      const speech = (dailyData.speech || '').trim() || buildSpeech();
       let html = '<div class="section-title">Speech</div>';
       html += '<div class="speech-box">' +
         '<div class="speech-head"><span>digest</span><button class="speech-copy" id="copyBtn">copy</button></div>' +
         '<div class="speech-text">' + escapeHtml(speech) + '</div>' +
         '</div>';
+
+      if (aiResume) {
+        html += '<div class="section-title">AI Resume</div>';
+        html += '<div class="speech-box ai-box">' +
+          '<div class="speech-head"><span>groq · ' + escapeHtml((window.CONFIG || {}).aiModel || 'llama') + '</span><button class="speech-copy" id="copyAiBtn">copy</button></div>' +
+          '<div class="speech-text">' + escapeHtml(aiResume) + '</div>' +
+          '</div>';
+      }
 
       html += '<div class="section-title">Commits <span class="section-count">' + commits.length + '</span></div>';
       const byRepo = {};
@@ -411,6 +421,13 @@
 
       document.getElementById('copyBtn').addEventListener('click', function () {
         navigator.clipboard.writeText(speech).then(() => {
+          this.textContent = 'copied!';
+          setTimeout(() => { this.textContent = 'copy'; }, 1500);
+        });
+      });
+      const copyAiBtn = document.getElementById('copyAiBtn');
+      if (copyAiBtn) copyAiBtn.addEventListener('click', function () {
+        navigator.clipboard.writeText(aiResume).then(() => {
           this.textContent = 'copied!';
           setTimeout(() => { this.textContent = 'copy'; }, 1500);
         });
