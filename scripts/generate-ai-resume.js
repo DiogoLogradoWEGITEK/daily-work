@@ -109,12 +109,19 @@ function main() {
     clearTimeout(timeout);
     const text = await r.text();
     if (!r.ok) {
-      console.log(`[ai] Groq HTTP ${r.status}: ${text.slice(0, 300)}`);
+      console.log(`[ai] Groq HTTP ${r.status}: ${text.slice(0, 400)}`);
       fs.writeFileSync('/tmp/ai-resume.txt', '');
       process.exit(0);
     }
     const data = JSON.parse(text);
-    const out = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || '').trim();
+    const msg = data.choices && data.choices[0] && data.choices[0].message || {};
+    const out = String(msg.content || '').trim();
+    if (!out) {
+      console.log('[ai] empty content - full response:');
+      console.log(text.slice(0, 1500));
+      fs.writeFileSync('/tmp/ai-resume.txt', '');
+      process.exit(0);
+    }
     console.log(`[ai] resume generated in ${((Date.now() - started) / 1000).toFixed(1)}s (${MODEL})`);
     fs.writeFileSync('/tmp/ai-resume.txt', out);
     process.exit(0);
