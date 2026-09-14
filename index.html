@@ -292,6 +292,16 @@
 
     const TYPE_LABELS = { feat: 'new', fix: 'fixes', perf: 'faster', refactor: 'cleanups', docs: 'docs', test: 'tests', chore: 'housekeeping', ci: 'ci', build: 'build', style: 'style', revert: 'reverts' };
 
+    function windowDayLabel() {
+      if (!dailyData || !dailyData.window || !dailyData.window.since) return 'yesterday';
+      const since = new Date(dailyData.window.since);
+      const now = new Date(dailyData.updatedAt || Date.now());
+      const d = new Date(now); d.setDate(d.getDate() - 1);
+      const isYesterday = since.getFullYear() === d.getFullYear() && since.getMonth() === d.getMonth() && since.getDate() === d.getDate();
+      if (isYesterday) return 'yesterday';
+      return since.toLocaleDateString(undefined, { weekday: 'long' });
+    }
+
     function commitType(c) {
       const m = (c.headline || '').match(/^(\w+)(\([^)]*\))?[:!]/);
       return m ? m[1].toLowerCase() : 'other';
@@ -334,7 +344,7 @@
       if (openPrs.length) {
         lines.push('PRs still open: ' + openPrs.map(p => '#' + p.number + ' ' + p.title).join(', ') + '.');
       }
-      if (!lines.length) lines.push('No commits or PRs since yesterday.');
+      if (!lines.length) lines.push('No commits or PRs since ' + windowDayLabel() + '.');
       return lines.join('\n');
     }
 
@@ -387,7 +397,7 @@
           '</div>';
       });
 
-      if (!html) html = '<div class="empty"><div class="big">☕</div>Nothing here since yesterday.</div>';
+      if (!html) html = '<div class="empty"><div class="big">☕</div>Nothing here since ' + windowDayLabel() + '.</div>';
       el.innerHTML = html;
 
       // TODO: AI RESUME — dailyData.speech is preferred once the fetch workflow fills it (GitHub Models);
