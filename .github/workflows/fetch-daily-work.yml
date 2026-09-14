@@ -39,6 +39,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Preflight token check
+        run: |
+          GIST_PAT="${GIST_PAT:-$GH_TOKEN}"
+          HTTP=$(curl -s -w '%{http_code}' -o /tmp/user.json -H "Authorization: token $GH_TOKEN" https://api.github.com/user) || true
+          echo "GH_TOKEN check: HTTP $HTTP - $(jq -r '.login // .message' /tmp/user.json)"
+          HTTP=$(curl -s -w '%{http_code}' -o /tmp/gist-check.json -H "Authorization: token $GIST_PAT" "https://api.github.com/gists/$GIST_ID") || true
+          echo "GIST_PAT check: HTTP $HTTP - $(jq -r '.id // .message' /tmp/gist-check.json)"
+          if [ "$HTTP" != "200" ]; then
+            echo "::warning::Gist preflight failed - GIST_PAT bad, missing, or lacking gist scope"
+          fi
+
       - name: Compute window
         run: |
           # Manual override wins
