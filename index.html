@@ -381,7 +381,7 @@
       if (aiResume) {
         html += '<div class="section-title">AI Resume</div>';
         html += '<div class="speech-box ai-box">' +
-          '<div class="speech-head"><span>groq · ' + escapeHtml((window.CONFIG || {}).aiModel || 'llama') + '</span><button class="speech-copy" id="copyAiBtn">copy</button></div>' +
+          '<div class="speech-head"><span>groq · ' + escapeHtml((window.CONFIG || {}).aiModel || 'gpt-oss') + '</span><button class="speech-copy" id="copyAiBtn">copy</button></div>' +
           '<div class="speech-text">' + escapeHtml(aiResume) + '</div>' +
           '</div>';
       }

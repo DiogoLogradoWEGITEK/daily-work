@@ -1,10 +1,10 @@
 // Generates the AI standup resume from the fetched commits/PRs via Groq.
-// Inputs:  /tmp/commits.json, /tmp/prs.json, env GROQ_KEY, AI_MODEL, GROQ_MODEL
+// Inputs:  /tmp/commits.json, /tmp/prs.json, env GROQ_KEY, AI_MODEL, AI_LANG
 // Output:  /tmp/ai-resume.txt (empty on any failure - the page hides the section then)
 const fs = require('fs');
 
 const KEY = process.env.GROQ_KEY || '';
-const MODEL = process.env.AI_MODEL || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const MODEL = process.env.AI_MODEL || 'openai/gpt-oss-120b';
 const LANG = (process.env.AI_LANG || 'pt').toLowerCase(); // pt | en
 
 function readJson(p) {
