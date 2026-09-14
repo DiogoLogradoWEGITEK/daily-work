@@ -258,14 +258,11 @@
     let dailyData = null;
 
     async function loadData() {
-      const cfg = window.CONFIG || {};
-      // index.html?mock forces the example data even when a gistId is configured
-      const forceMock = new URLSearchParams(location.search).has('mock');
-      const gistId = cfg.gistId;
-      if (forceMock || !gistId || gistId === 'YOUR_GIST_ID') {
+      const gistId = (window.CONFIG || {}).gistId;
+      if (!gistId || gistId === 'YOUR_GIST_ID') {
         if (window.DAILY_DATA_EXAMPLE) {
           dailyData = window.DAILY_DATA_EXAMPLE;
-          console.log('[daily] using example data' + (forceMock ? ' (?mock)' : ''));
+          console.log('[daily] using example data');
         }
         return;
       }
