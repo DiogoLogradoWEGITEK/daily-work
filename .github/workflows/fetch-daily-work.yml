@@ -1,4 +1,4 @@
-name: Fetch Daily Work
+name: Fetch Daily Work + AI Resume
 
 on:
   schedule:

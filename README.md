@@ -18,19 +18,19 @@ A GitHub Pages **experiment in personal activity feeds**: a static page that lis
 2. Create a **PAT** with `repo` + `gist` scopes.
 3. Add secrets (**Settings → Secrets and variables → Actions**):
 
-| Secret            | Description                                            | Example                   |
-| ----------------- | ------------------------------------------------------ | ------------------------- |
-| `GH_USER`         | GitHub handle to query                                 | `your-handle`             |
-| `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters | `org:my-org`              |
-| `GH_TOKEN`        | PAT with `repo` + `gist` scopes - the only credential  | `ghp_...`                 |
-| `GIST_ID`         | Gist ID that caches the JSON                           | `a1b2c3d4...`             |
-| `STANDUP_TIME`    | Window start, `HH:MM` 24h                              | `15:00`                   |
-| `STANDUP_TZ`      | IANA timezone of the window start                      | `Europe/Lisbon`           |
-| `GROQ_KEY`        | Optional - Groq API key for the AI resume              | `gsk_...`                 |
-| `AI_MODEL`        | Optional - Groq model id                               | `openai/gpt-oss-120b`     |
+| Secret            | Description                                            | Example               |
+| ----------------- | ------------------------------------------------------ | --------------------- |
+| `GH_USER`         | GitHub handle to query                                 | `your-handle`         |
+| `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters | `org:my-org`          |
+| `GH_TOKEN`        | PAT with `repo` + `gist` scopes - the only credential  | `ghp_...`             |
+| `GIST_ID`         | Gist ID that caches the JSON                           | `a1b2c3d4...`         |
+| `STANDUP_TIME`    | Window start, `HH:MM` 24h                              | `15:00`               |
+| `STANDUP_TZ`      | IANA timezone of the window start                      | `Europe/Lisbon`       |
+| `GROQ_KEY`        | Optional - Groq API key for the AI resume              | `gsk_...`             |
+| `AI_MODEL`        | Optional - Groq model id                               | `openai/gpt-oss-120b` |
 
 4. Enable **Settings → Pages → Source: GitHub Actions**, then push to `main`.
-5. Run **Actions → Fetch Daily Work** manually once (optional `since` override for the window start).
+5. Run **Actions → Fetch Daily Work + AI Resume** manually once (optional `since` override for the window start).
 
 ## Local preview
 
@@ -47,7 +47,7 @@ The resume language defaults to Portuguese (pt-PT); set the optional `AI_LANG` s
 | Workflow               | Schedule                   | Purpose                                                    |
 | ---------------------- | -------------------------- | ---------------------------------------------------------- |
 | `deploy.yml`           | On push to `main`          | Deploys to GitHub Pages, injects secrets, stamps git SHA   |
-| `fetch-daily-work.yml` | Mon-Fri 13:23 UTC + jitter | Fetches commits + PRs since the window start into the Gist |
+| `fetch-daily-work.yml` | Mon-Fri 13:23 UTC + jitter | Fetches commits + PRs since the window start into the Gist and generates the AI resume |
 
 ## Notes & limitations
 
