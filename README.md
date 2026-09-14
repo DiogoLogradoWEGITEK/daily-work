@@ -44,9 +44,9 @@ The resume language defaults to Portuguese (pt-PT); set the optional `AI_LANG` s
 
 ## Workflows
 
-| Workflow               | Schedule                   | Purpose                                                    |
-| ---------------------- | -------------------------- | ---------------------------------------------------------- |
-| `deploy.yml`           | On push to `main`          | Deploys to GitHub Pages, injects secrets, stamps git SHA   |
+| Workflow               | Schedule                   | Purpose                                                                                |
+| ---------------------- | -------------------------- | -------------------------------------------------------------------------------------- |
+| `deploy.yml`           | On push to `main`          | Deploys to GitHub Pages, injects secrets, stamps git SHA                               |
 | `fetch-daily-work.yml` | Mon-Fri 13:23 UTC + jitter | Fetches commits + PRs since the window start into the Gist and generates the AI resume |
 
 ## Notes & limitations
