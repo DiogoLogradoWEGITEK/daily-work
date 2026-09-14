@@ -23,6 +23,8 @@ on:
 # Notes:
 #   - The commit search API only indexes commits on the DEFAULT branch. Work on
 #     feature branches is still captured via PR commit headlines below.
+#   - Open PRs are fetched too, so in-progress work shows in the daily digest
+#     even before merge.
 #   - Weekends: the Monday run uses Friday's window start as SINCE.
 jobs:
   fetch-daily:
@@ -81,10 +83,12 @@ jobs:
           TARGET_USER="${GH_USER:-${GITHUB_REPOSITORY_OWNER}}"
           GIST_PAT="${GIST_PAT:-$GH_TOKEN}"
           COMMIT_QUERY="author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}"
-          PR_QUERY="is:pr is:merged author:${TARGET_USER} ${SCOPE} merged:>=${SINCE}"
+          PR_MERGED_QUERY="is:pr is:merged author:${TARGET_USER} ${SCOPE} merged:>=${SINCE}"
+          PR_OPEN_QUERY="is:pr is:open author:${TARGET_USER} ${SCOPE} updated:>=${SINCE}"
 
           echo "Commit query: $COMMIT_QUERY"
-          echo "PR query:     $PR_QUERY"
+          echo "PR merged query: $PR_MERGED_QUERY"
+          echo "PR open query:   $PR_OPEN_QUERY"
 
           # Commits (REST search — default-branch commits only)
           HTTP=$(curl -s -w '%{http_code}' -o /tmp/commits-raw.json \
@@ -101,26 +105,74 @@ jobs:
           fi
           echo "Commits found: $(jq 'length' /tmp/commits.json)"
 
-          # PRs (GraphQL — same query family as DailyDevTeamOrganizer)
+          # PRs (GraphQL — same query family as DailyDevTeamOrganizer).
+          # Two searches: merged since window + open (in-progress work shows in the digest).
           GRAPHQL_QUERY='query($q:String!){search(query:$q,type:ISSUE,first:10){nodes{...on PullRequest{title number repository{name} body headRefName baseRefName state mergedAt commits(last:5){nodes{commit{messageHeadline}}}}}}}'
-          HTTP=$(curl -s -w '%{http_code}' -o /tmp/prs-raw.json \
-            -H "Authorization: bearer $GH_TOKEN" \
-            -H "Content-Type: application/json" \
-            -X POST "https://api.github.com/graphql" \
-            -d "$(jq -nc --arg q "$PR_QUERY" --arg gql "$GRAPHQL_QUERY" '{query:$gql,variables:{q:$q}}')") || true
-          echo "PR search HTTP: $HTTP"
+          PR_SHAPE='[(.data.search.nodes//[])[]|select(.title!=null)|(.body//""|gsub("[*#`_~]";"")|gsub("[\r\n]+";" ")|gsub("  +";" ")|ltrimstr(" ")) as $b|{title,number,repo:.repository.name,body:(if ($b|length)>0 then ($b|.[0:200]) else ([(.commits.nodes//[])[].commit.messageHeadline]|join(" \u00b7 ")|.[0:200]) end),branch:.headRefName,baseBranch:.baseRefName,state,mergedAt}]'
+
+          fetch_prs() {
+            curl -s -w '%{http_code}' -o "$2" \
+              -H "Authorization: bearer $GH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -X POST "https://api.github.com/graphql" \
+              -d "$(jq -nc --arg q "$1" --arg gql "$GRAPHQL_QUERY" '{query:$gql,variables:{q:$q}}')" > /tmp/prs-http.txt \
+              || echo 000 > /tmp/prs-http.txt
+          }
+
+          fetch_prs "$PR_MERGED_QUERY" /tmp/prs-merged-raw.json
+          HTTP=$(cat /tmp/prs-http.txt)
+          echo "Merged PR search HTTP: $HTTP"
           if [ "$HTTP" = "200" ]; then
-            ERRORS=$(jq -c '.errors // empty' /tmp/prs-raw.json)
-            if [ -n "$ERRORS" ]; then
-              echo "::warning::GraphQL errors: $ERRORS"
-            fi
-            jq '[(.data.search.nodes//[])[]|select(.title!=null)|(.body//""|gsub("[*#`_~]";"")|gsub("[\r\n]+";" ")|gsub("  +";" ")|ltrimstr(" ")) as $b|{title,number,repo:.repository.name,body:(if ($b|length)>0 then ($b|.[0:200]) else ([(.commits.nodes//[])[].commit.messageHeadline]|join(" \u00b7 ")|.[0:200]) end),branch:.headRefName,baseBranch:.baseRefName,state,mergedAt}]' /tmp/prs-raw.json > /tmp/prs.json
+            ERRORS=$(jq -c '.errors // empty' /tmp/prs-merged-raw.json)
+            [ -n "$ERRORS" ] && echo "::warning::GraphQL errors: $ERRORS"
+            jq "$PR_SHAPE" /tmp/prs-merged-raw.json > /tmp/prs-merged.json
           else
-            echo "::warning::PR search failed (HTTP $HTTP)"
-            head -c 400 /tmp/prs-raw.json; echo
-            echo "[]" > /tmp/prs.json
+            echo "::warning::Merged PR search failed (HTTP $HTTP)"
+            head -c 400 /tmp/prs-merged-raw.json; echo
+            echo "[]" > /tmp/prs-merged.json
           fi
-          echo "PRs found: $(jq 'length' /tmp/prs.json)"
+
+          fetch_prs "$PR_OPEN_QUERY" /tmp/prs-open-raw.json
+          HTTP=$(cat /tmp/prs-http.txt)
+          echo "Open PR search HTTP: $HTTP"
+          if [ "$HTTP" = "200" ]; then
+            ERRORS=$(jq -c '.errors // empty' /tmp/prs-open-raw.json)
+            [ -n "$ERRORS" ] && echo "::warning::GraphQL errors: $ERRORS"
+            jq "$PR_SHAPE" /tmp/prs-open-raw.json > /tmp/prs-open.json
+          else
+            echo "::warning::Open PR search failed (HTTP $HTTP)"
+            head -c 400 /tmp/prs-open-raw.json; echo
+            echo "[]" > /tmp/prs-open.json
+          fi
+
+          # Dedupe by repo+number (PR numbers collide across repos), newest first
+          jq -s 'add | unique_by(.repo + "#" + (.number|tostring)) | sort_by(.mergedAt // .updatedAt // "") | reverse' \
+            /tmp/prs-merged.json /tmp/prs-open.json > /tmp/prs.json
+          echo "PRs found: $(jq 'length' /tmp/prs.json) (merged: $(jq 'length' /tmp/prs-merged.json), open: $(jq 'length' /tmp/prs-open.json))"
+
+          # Zero-results trace: isolate handle / scope / SSO / window problems
+          if [ "$(jq 'length' /tmp/commits.json)" = "0" ] && [ "$(jq 'length' /tmp/prs.json)" = "0" ]; then
+            echo "------------------------------------------"
+            echo "TRACE: zero results - running search matrix"
+            curl -sI -H "Authorization: token $GH_TOKEN" https://api.github.com/user | grep -i '^x-oauth-scopes' || echo "x-oauth-scopes: (header missing)"
+            trace() {
+              local H T
+              H=$(curl -s -w '%{http_code}' -o /tmp/trace.json \
+                -H "Authorization: token $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/search/commits?q=$(jq -rn --arg q "$1" '$q|@uri')") || H=000
+              T=$(jq -r '.total_count // "-"' /tmp/trace.json 2>/dev/null)
+              echo "  $2 → HTTP $H, total_count $T"
+            }
+            trace "author:${TARGET_USER}" "author only"
+            trace "author:${TARGET_USER} author-date:>=${SINCE}" "author + since (no scope)"
+            trace "author:${TARGET_USER} ${SCOPE}" "author + scope (no since)"
+            trace "author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}" "author + scope + since (actual query)"
+            echo "Interpretation:"
+            echo "  'author only' = 0      → commits authored by an email not linked to the GitHub account, or handle typo in GH_USER"
+            echo "  'author only' > 0, '+ scope' = 0 → SSO: authorize the PAT for the orgs (Developer settings → PAT → Configure SSO), or org/repo name typo in GH_SEARCH_SCOPE"
+            echo "  '+ scope' > 0, '+ scope + since' = 0 → work exists but outside the window or on non-default branches"
+          fi
 
           # Merge into daily-data.json
           # TODO: AI RESUME — optionally send commits+prs to GitHub Models here and
