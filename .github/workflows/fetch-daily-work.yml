@@ -1,0 +1,116 @@
+name: Fetch Daily Work
+
+on:
+  schedule:
+    - cron: "23 5 * * 1-5" # 05:23 UTC — quiet window, well before the 15:00 Portugal standup
+  workflow_dispatch:
+    inputs:
+      since:
+        description: "ISO start of window (e.g. 2026-09-10T15:00:00Z). Empty = since last standup."
+        required: false
+        default: ""
+
+# Required secrets:
+#   GH_USER            — your GitHub handle (commits and PRs are fetched for this user)
+#   STANDUP_TIME       — your standup time, "HH:MM" 24h format (default 15:00)
+#   STANDUP_TZ         — IANA timezone of standup time (default Europe/Lisbon)
+#   GH_SEARCH_SCOPE    — GitHub search scope, space-separated. Supports orgs and/or repos:
+#                        e.g.: "org:my-org" or "org:my-org org:another-org" or "repo:owner/repo1 repo:owner/repo2"
+#   GH_TOKEN           — PAT with `repo` read scope (to search commits and PRs in private repos)
+#   GIST_ID            — Gist ID where results are cached
+#   GIST_PAT           — PAT with `gist` write scope
+#
+# Notes:
+#   - The commit search API only indexes commits on the DEFAULT branch. Work on
+#     feature branches is still captured via PR commit headlines below.
+#   - Weekends: the Monday run computes "since last standup" as Friday 15:00.
+jobs:
+  fetch-daily:
+    runs-on: ubuntu-latest
+    env:
+      GH_USER: ${{ secrets.GH_USER }}
+      STANDUP_TIME: ${{ secrets.STANDUP_TIME }}
+      STANDUP_TZ: ${{ secrets.STANDUP_TZ }}
+      GH_SEARCH_SCOPE: ${{ secrets.GH_SEARCH_SCOPE }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GIST_ID: ${{ secrets.GIST_ID }}
+      GIST_PAT: ${{ secrets.GIST_PAT }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute window (since last standup)
+        run: |
+          # Manual override wins
+          if [ -n "${{ github.event.inputs.since }}" ]; then
+            SINCE="${{ github.event.inputs.since }}"
+            echo "Window overridden manually: $SINCE"
+          else
+            STANDUP_TIME="${STANDUP_TIME:-15:00}"
+            STANDUP_TZ="${STANDUP_TZ:-Europe/Lisbon}"
+            # Yesterday's standup time, rendered in the standup timezone with its
+            # UTC offset (e.g. 2026-09-10T15:00:00+01:00) — valid ISO 8601 for search
+            SINCE=$(TZ="$STANDUP_TZ" date -d "yesterday $STANDUP_TIME" +%Y-%m-%dT%H:%M:%S%:z)
+            echo "Standup $STANDUP_TIME $STANDUP_TZ yesterday → since $SINCE"
+          fi
+          echo "SINCE=$SINCE" >> "$GITHUB_ENV"
+          echo "UNTIL=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
+      - name: Fetch commits and PRs, cache to Gist
+        run: |
+          set -e
+          SCOPE="${GH_SEARCH_SCOPE:-}"
+          TARGET_USER="${GH_USER:-${GITHUB_REPOSITORY_OWNER}}"
+          COMMIT_QUERY="author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}"
+          PR_QUERY="is:pr is:merged author:${TARGET_USER} ${SCOPE} merged:>=${SINCE}"
+
+          echo "Commit query: $COMMIT_QUERY"
+          echo "PR query:     $PR_QUERY"
+
+          # Commits (REST search — default-branch commits only)
+          curl -sf \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/search/commits?q=$(jq -rn --arg q "$COMMIT_QUERY" '$q|@uri')" \
+          | jq '[.items[] | {sha: .sha[0:7], repo: .repository.name, date: .commit.author.date, headline: (.commit.message | split("\n")[0]), message: .commit.message, url: .html_url}]' \
+          > /tmp/commits.json || echo "[]" > /tmp/commits.json
+          echo "Commits found: $(jq 'length' /tmp/commits.json)"
+
+          # PRs (GraphQL — same query family as DailyDevTeamOrganizer)
+          GRAPHQL_QUERY='query($q:String!){search(query:$q,type:ISSUE,first:10){nodes{...on PullRequest{title number repository{name} body headRefName baseRefName state mergedAt commits(last:5){nodes{commit{messageHeadline}}}}}}}'
+          curl -sf \
+            -H "Authorization: bearer $GH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -X POST "https://api.github.com/graphql" \
+            -d "$(jq -nc --arg q "$PR_QUERY" --arg gql "$GRAPHQL_QUERY" '{query:$gql,variables:{q:$q}}')" \
+          | jq '[(.data.search.nodes//[])[]|select(.title!=null)|(.body//""|gsub("[*#`_~]";"")|gsub("[\r\n]+";" ")|gsub("  +";" ")|ltrimstr(" ")) as $b|{title,number,repo:.repository.name,body:(if ($b|length)>0 then ($b|.[0:200]) else ([(.commits.nodes//[])[].commit.messageHeadline]|join(" \u00b7 ")|.[0:200]) end),branch:.headRefName,baseBranch:.baseRefName,state,mergedAt}]' \
+          > /tmp/prs.json || echo "[]" > /tmp/prs.json
+          echo "PRs found: $(jq 'length' /tmp/prs.json)"
+
+          # Merge into daily-data.json
+          # TODO: AI RESUME — optionally send commits+prs to GitHub Models here and
+          # store the generated speech in the speech field instead of ""
+          jq -nc --rawfile commits /tmp/commits.json --rawfile prs /tmp/prs.json \
+            --arg updatedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg since "$SINCE" --arg until "$UNTIL" \
+            '{updatedAt:$updatedAt, window:{since:$since, until:$until}, commits:($commits|fromjson), prs:($prs|fromjson), speech:""}' \
+          > /tmp/daily-data.json
+
+          # Patch Gist
+          jq -n --rawfile content /tmp/daily-data.json \
+            '{files: {"daily-data.json": {content: $content}}}' \
+          | curl -sf -X PATCH "https://api.github.com/gists/$GIST_ID" \
+              -H "Authorization: token $GIST_PAT" \
+              -H "Content-Type: application/json" \
+              -d @-
+
+          echo "Done — daily data cached at $(date -u)"
+
+      - name: Daily Work Summary
+        run: |
+          echo "------------------------------------------"
+          echo "Window: $SINCE → $UNTIL"
+          echo "Commits:"
+          jq -r '.[] | "  [\(.repo)] \(.headline)"' /tmp/commits.json
+          echo "PRs:"
+          jq -r '.[] | "  [\(.repo) #\(.number)] \(.title) (\(.state))"' /tmp/prs.json
+          echo "------------------------------------------"

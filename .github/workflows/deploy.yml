@@ -1,0 +1,62 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write config
+        # Secrets — personal settings.
+        # GH_USER:       GitHub handle whose commits/PRs are shown
+        # GIST_ID:       GitHub Gist ID that stores daily data
+        # STANDUP_TIME:  "HH:MM" 24h (default 15:00)
+        # STANDUP_TZ:    IANA timezone (default Europe/Lisbon)
+        env:
+          GH_USER: ${{ secrets.GH_USER }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          STANDUP_TIME: ${{ secrets.STANDUP_TIME }}
+          STANDUP_TZ: ${{ secrets.STANDUP_TZ }}
+        run: |
+          printf 'window.CONFIG = { github: "%s", gistId: "%s", standupTime: "%s", standupTz: "%s" };\n' \
+            "${GH_USER}" \
+            "${GIST_ID}" \
+            "${STANDUP_TIME:-15:00}" \
+            "${STANDUP_TZ:-Europe/Lisbon}" > config.js
+          echo "config.js written."
+
+      - name: Inject version
+        run: |
+          VERSION="$(git rev-parse --short HEAD)"
+          sed -i "s/__VERSION__/${VERSION}/g" index.html
+          echo "Version set to ${VERSION}"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

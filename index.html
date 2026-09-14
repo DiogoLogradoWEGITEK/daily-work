@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Daily Work</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="config.js"></script>
+  <script src="config.example.js"></script>
+  <style>
+    :root {
+      --cp: #0c3ff7;
+      --cp-dark: #092cad;
+      --cp-bg: #eef2fe;
+      --cp-hov: #dce5fd;
+      --cp-r: 12; --cp-g: 63; --cp-b: 247;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: var(--cp-bg);
+      color: #222;
+    }
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.7rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: #1a1a1a;
+    }
+    h1 .accent { color: var(--cp); }
+    .window {
+      font-size: 0.85rem;
+      color: #555;
+      font-weight: 500;
+    }
+    .updated {
+      font-size: 0.72rem;
+      color: #999;
+      margin-bottom: 18px;
+      font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+    .stat {
+      background: #fff;
+      border-radius: 10px;
+      border-left: 5px solid var(--cp);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 10px 18px;
+      min-width: 96px;
+    }
+    .stat .n { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+    .stat .l { font-size: 0.72rem; color: #777; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888;
+      margin: 30px 0 10px;
+    }
+    .repo-group {
+      background: #fff;
+      border-radius: 12px;
+      border-left: 5px solid var(--cp);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .repo-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .repo-name {
+      font-weight: 700;
+      color: var(--cp);
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+    }
+    .repo-count {
+      font-size: 0.75rem;
+      color: #999;
+      font-weight: 600;
+    }
+    .commit {
+      display: flex;
+      gap: 10px;
+      padding: 7px 0;
+      border-top: 1px solid #f0f0f0;
+      font-size: 0.9rem;
+    }
+    .commit:first-of-type { border-top: none; }
+    .commit .time {
+      flex: 0 0 48px;
+      color: #999;
+      font-size: 0.78rem;
+      font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+      padding-top: 2px;
+      white-space: nowrap;
+    }
+    .commit a {
+      color: #222;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .commit a:hover { color: var(--cp); text-decoration: underline; }
+    .commit .detail {
+      display: block;
+      font-size: 0.78rem;
+      color: #888;
+      margin-top: 2px;
+      line-height: 1.45;
+    }
+    .pr-card {
+      background: #fff;
+      border-radius: 12px;
+      border-left: 5px solid var(--cp);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .pr-top {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pr-repo {
+      font-weight: 700;
+      color: var(--cp);
+      font-size: 0.84rem;
+      letter-spacing: 0.02em;
+    }
+    .pr-title { font-weight: 600; font-size: 0.95rem; color: #222; }
+    .pr-num { font-size: 0.85rem; font-weight: 700; color: rgb(var(--cp-r) var(--cp-g) var(--cp-b) / 0.5); }
+    .pr-branch-ref {
+      display: block;
+      font-size: 0.78rem;
+      font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+      color: #555;
+      margin-top: 4px;
+    }
+    .pr-branch-arrow { margin: 0 4px; }
+    .pr-body {
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: #444;
+      line-height: 1.55;
+    }
+    .badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 6px;
+      margin-left: auto;
+    }
+    .badge--merged { color: #059669; background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.25); }
+    .badge--open { color: #b45309; background: rgba(180,83,9,0.08); border: 1px solid rgba(180,83,9,0.25); }
+    .speech-box {
+      background: #1e1e1e;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.28);
+      padding: 0;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .speech-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid #333;
+      color: #8b8b8b;
+      font-size: 0.72rem;
+      font-family: 'Consolas', monospace;
+    }
+    .speech-copy {
+      background: none;
+      border: 1px solid #444;
+      color: #bbb;
+      font-size: 0.7rem;
+      padding: 3px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: system-ui, sans-serif;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .speech-copy:hover { color: #fff; border-color: #777; }
+    .speech-text {
+      margin: 0;
+      padding: 14px 18px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: #d4d4d4;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+      font-size: 0.95rem;
+    }
+    .empty .big { font-size: 2.2rem; margin-bottom: 10px; }
+    footer {
+      text-align: center;
+      font-size: 0.65rem;
+      color: #999;
+      opacity: 0.6;
+      font-family: monospace;
+      margin-top: 40px;
+      pointer-events: none;
+    }
+    @media (max-width: 600px) {
+      main { padding: 24px 14px 60px; }
+      h1 { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1 id="title">Daily Work</h1>
+      <span class="window" id="window"></span>
+    </header>
+    <div class="updated" id="updated"></div>
+    <div class="stats" id="stats"></div>
+    <div id="content"></div>
+    <footer>__VERSION__</footer>
+  </main>
+
+  <script src="daily-data.example.js"></script>
+  <script>
+    let dailyData = null;
+
+    async function loadData() {
+      const gistId = (window.CONFIG || {}).gistId;
+      if (!gistId || gistId === 'YOUR_GIST_ID') {
+        if (window.DAILY_DATA_EXAMPLE) {
+          dailyData = window.DAILY_DATA_EXAMPLE;
+          console.log('[daily] using example data');
+        }
+        return;
+      }
+      try {
+        const r = await fetch(`https://api.github.com/gists/${gistId}`);
+        if (!r.ok) return;
+        const gist = await r.json();
+        const file = gist.files['daily-data.json'];
+        if (file) { dailyData = JSON.parse(file.content); }
+      } catch (e) { console.warn('[daily] loadData failed', e); }
+    }
+
+    function formatWindow(win) {
+      if (!win || !win.since) return '';
+      const opts = { weekday: 'short', hour: '2-digit', minute: '2-digit' };
+      const since = new Date(win.since).toLocaleString(undefined, opts);
+      const until = win.until ? new Date(win.until).toLocaleString(undefined, opts) : 'now';
+      return `${since} → ${until}`;
+    }
+
+    function fmtTime(iso) {
+      return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    const TYPE_LABELS = { feat: 'new', fix: 'fixes', perf: 'faster', refactor: 'cleanups', docs: 'docs', test: 'tests', chore: 'housekeeping', ci: 'ci', build: 'build', style: 'style', revert: 'reverts' };
+
+    function commitType(c) {
+      const m = (c.headline || '').match(/^(\w+)(\([^)]*\))?[:!]/);
+      return m ? m[1].toLowerCase() : 'other';
+    }
+
+    function commitSubject(c) {
+      const h = (c.headline || '').trim();
+      const m = h.match(/^[a-z]+(\([^)]*\))?(!)?:\s*(.+)$/i);
+      return m ? m[3] : h;
+    }
+
+    function buildSpeech() {
+      if (!dailyData) return '';
+      const commits = dailyData.commits || [];
+      const prs = dailyData.prs || [];
+      const lines = [];
+
+      if (commits.length) {
+        const repos = [...new Set(commits.map(c => c.repo))];
+        lines.push('Commits: ' + commits.length + ' across ' + repos.length + ' repo' + (repos.length > 1 ? 's' : '') + '.');
+        const byRepo = {};
+        commits.forEach(c => { (byRepo[c.repo] = byRepo[c.repo] || []).push(c); });
+        Object.keys(byRepo).sort().forEach(repo => {
+          const items = byRepo[repo]
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .map(c => {
+              const t = commitType(c);
+              return commitSubject(c) + (t !== 'other' && TYPE_LABELS[t] ? ' (' + TYPE_LABELS[t] + ')' : '');
+            });
+          lines.push('In ' + repo + ': ' + items.join(', ') + '.');
+        });
+      }
+
+      const openPrs = prs.filter(p => p.state !== 'merged');
+      const mergedPrs = prs.filter(p => p.state === 'merged');
+      if (mergedPrs.length) {
+        lines.push('');
+        lines.push('Merged PRs: ' + mergedPrs.map(p => '#' + p.number + ' ' + p.title).join(', ') + '.');
+      }
+      if (openPrs.length) {
+        lines.push('PRs still open: ' + openPrs.map(p => '#' + p.number + ' ' + p.title).join(', ') + '.');
+      }
+      if (!lines.length) lines.push('No commits or PRs since the last standup.');
+      return lines.join('\n');
+    }
+
+    function render() {
+      const el = document.getElementById('content');
+      if (!dailyData) {
+        el.innerHTML = '<div class="empty"><div class="big">🛰️</div>No data yet — run the fetch workflow or check the GIST_ID config.</div>';
+        return;
+      }
+
+      document.getElementById('title').innerHTML = 'Daily <span class="accent">Work</span>';
+      document.getElementById('window').textContent = formatWindow(dailyData.window);
+      document.getElementById('updated').textContent =
+        'updated ' + new Date(dailyData.updatedAt).toLocaleString() + ' · user ' + ((window.CONFIG || {}).github || '');
+
+      const commits = dailyData.commits || [];
+      const prs = dailyData.prs || [];
+      const repos = [...new Set(commits.map(c => c.repo).concat(prs.map(p => p.repo)))];
+
+      const stats = document.getElementById('stats');
+      stats.innerHTML =
+        '<div class="stat"><div class="n">' + commits.length + '</div><div class="l">commits</div></div>' +
+        '<div class="stat"><div class="n">' + prs.length + '</div><div class="l">prs</div></div>' +
+        '<div class="stat"><div class="n">' + repos.length + '</div><div class="l">repos</div></div>';
+
+      let html = '';
+      const byRepo = {};
+      commits.forEach(c => { (byRepo[c.repo] = byRepo[c.repo] || []).push(c); });
+      const repoOrder = repos.filter(r => byRepo[r]);
+      repoOrder.forEach(repo => {
+        const list = byRepo[repo].slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+        html += '<div class="repo-group"><div class="repo-head"><span class="repo-name">' + escapeHtml(repo) + '</span><span class="repo-count">' + list.length + ' commit' + (list.length > 1 ? 's' : '') + '</span></div>';
+        list.forEach(c => {
+          html += '<div class="commit"><span class="time">' + fmtTime(c.date) + '</span>' +
+            '<div><a href="' + escapeHtml(c.url || '#') + '" target="_blank" rel="noopener">' + escapeHtml(c.headline) + '</a>' +
+            (c.message && c.message.trim().split('\n').length > 1 ? '<span class="detail">' + escapeHtml(c.message.trim().split('\n').slice(1).join(' ').trim()) + '</span>' : '') +
+            '</div></div>';
+        });
+        html += '</div>';
+      });
+
+      prs.forEach(pr => {
+        const merged = pr.state === 'merged';
+        html += '<div class="pr-card"><div class="pr-top">' +
+          '<span class="pr-repo">' + escapeHtml(pr.repo || '') + '</span>' +
+          '<span class="pr-num">#' + pr.number + '</span>' +
+          '<span class="pr-title">' + escapeHtml(pr.title) + '</span>' +
+          '<span class="badge ' + (merged ? 'badge--merged' : 'badge--open') + '">' + (merged ? 'merged' : 'open') + '</span></div>' +
+          (pr.branch ? '<span class="pr-branch-ref">' + escapeHtml(pr.branch) + '<span class="pr-branch-arrow">→</span>' + escapeHtml(pr.baseBranch || 'main') + '</span>' : '') +
+          (pr.body ? '<div class="pr-body">' + escapeHtml(pr.body) + '</div>' : '') +
+          '</div>';
+      });
+
+      if (!html) html = '<div class="empty"><div class="big">☕</div>Nothing here since the last standup.</div>';
+      el.innerHTML = html;
+
+      // TODO: AI RESUME — dailyData.speech is preferred once the fetch workflow fills it (GitHub Models);
+      // buildSpeech() below is the no-AI fallback template.
+      const speech = (dailyData.speech || '').trim() || buildSpeech();
+      const speechBox = document.createElement('div');
+      speechBox.className = 'speech-box';
+      speechBox.innerHTML =
+        '<div class="speech-head"><span>speech</span><button class="speech-copy" id="copyBtn">copy</button></div>' +
+        '<div class="speech-text">' + escapeHtml(speech) + '</div>';
+      document.getElementById('stats').after(speechBox);
+      document.getElementById('copyBtn').addEventListener('click', function () {
+        navigator.clipboard.writeText(speech).then(() => {
+          this.textContent = 'copied!';
+          setTimeout(() => { this.textContent = 'copy'; }, 1500);
+        });
+      });
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    loadData().then(render);
+  </script>
+</body>
+</html>
