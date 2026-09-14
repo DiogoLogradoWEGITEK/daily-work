@@ -5,6 +5,7 @@ const fs = require('fs');
 
 const KEY = process.env.GROQ_KEY || '';
 const MODEL = process.env.AI_MODEL || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const LANG = (process.env.AI_LANG || 'pt').toLowerCase(); // pt | en
 
 function readJson(p) {
   try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return []; }
@@ -33,6 +34,44 @@ function main() {
     return;
   }
 
+  const L = LANG === 'en'
+    ? {
+      commits: 'Commits:',
+      prs: 'Pull requests:',
+      next: 'Next:',
+      fallbackNext: 'carry on with current tasks',
+      rules: [
+        'Write my standup update as a ready-to-read script. Rules:',
+        '- First person, past tense, Portuguese (pt-PT style, Brazilian Portuguese is fine if more natural)',
+        '- Structure it exactly with these headings, one per line, followed by bullet lines starting with "-":',
+        '  Commits:',
+        '  Pull requests:',
+        '- Each bullet: short plain sentence describing what I did (rewrite the commit/PR title as a natural action, mention the repo only when useful)',
+        '- Merge commits and their PR titles describe the same work: mention each piece of work only once, under Pull requests',
+        '- Skip trivia: dependency bumps, typo fixes, CI-only tweaks get one short mention at most',
+        '- End with one line starting with "Next:" listing what I plan to do next, inferred from any open PRs or follow-up hints, otherwise "carry on with current tasks"',
+        '- Output only the script text, no markdown, no code fences'
+      ].join('\n')
+    }
+    : {
+      commits: 'Commits:',
+      prs: 'Pull requests:',
+      next: 'A seguir:',
+      fallbackNext: 'continuar com as tarefas atuais',
+      rules: [
+        'Escreve o meu update de standup como um guião pronto a ler. Regras:',
+        '- Primeira pessoa, passado, português de Portugal (pt-PT)',
+        '- Estrutura exatamente com estes títulos, um por linha, seguidos de bullets que começam por "-":',
+        '  Commits:',
+        '  Pull requests:',
+        '- Cada bullet: frase curta e simples a descrever o que fiz (reescreve o título do commit/PR como uma ação natural, menciona o repo só quando for útil)',
+        '- Commits de merge e os títulos dos PRs descrevem o mesmo trabalho: menciona cada trabalho uma única vez, em Pull requests',
+        '- Ignora trivialidades: bumps de dependências, fixes de typos, ajustes de CI têm no máximo uma menção curta',
+        '- Termina com uma linha que começa por "A seguir:" com o que vou fazer a seguir, deduzido dos PRs abertos ou pistas de follow-up, senão "continuar com as tarefas atuais"',
+        '- Escreve apenas o texto do guião, sem markdown, sem code fences'
+      ].join('\n')
+    };
+
   const prompt = [
     'These are my commits and pull requests at work since my last standup' + (since ? ` (window: ${since} to ${until})` : '') + ':',
     '',
@@ -42,16 +81,7 @@ function main() {
     'Pull requests:',
     ...(prLines.length ? prLines : ['(none)']),
     '',
-    'Write my standup update as a ready-to-read script. Rules:',
-    '- First person, past tense, English',
-    '- Structure it exactly with these headings, one per line, followed by bullet lines starting with "-":',
-    '  Commits:',
-    '  Pull requests:',
-    '- Each bullet: short plain sentence describing what I did (rewrite the commit/PR title as a natural action, mention the repo only when useful)',
-    '- Merge commits and their PR titles describe the same work: mention each piece of work only once, under Pull requests',
-    '- Skip trivia: dependency bumps, typo fixes, CI-only tweaks get one short mention at most',
-    '- End with one line starting with "Next:" listing what I plan to do next, inferred from any open PRs or follow-up hints, otherwise "carry on with current tasks"',
-    '- Output only the script text, no markdown, no code fences'
+    L.rules
   ].join('\n');
 
   const body = JSON.stringify({
