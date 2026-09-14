@@ -370,6 +370,7 @@
       const commits = dailyData.commits || [];
       const prs = dailyData.prs || [];
       const aiResume = (dailyData.aiResume || '').trim();
+      const speech = (dailyData.speech || '').trim() || buildSpeech();
 
       let html = '<div class="section-title">Speech</div>';
       html += '<div class="speech-box">' +
