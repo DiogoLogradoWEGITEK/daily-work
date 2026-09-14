@@ -91,7 +91,10 @@ function main() {
       { role: 'user', content: prompt }
     ],
     temperature: 0.4,
-    max_tokens: 500
+    // gpt-oss reasoning models burn tokens "thinking" before writing the
+    // visible answer - a tight cap truncates to just the first heading.
+    // max_completion_tokens covers both reasoning + answer with headroom.
+    max_completion_tokens: 4000
   });
 
   const started = Date.now();
@@ -114,8 +117,14 @@ function main() {
       process.exit(0);
     }
     const data = JSON.parse(text);
-    const msg = data.choices && data.choices[0] && data.choices[0].message || {};
+    const choice = data.choices && data.choices[0] || {};
+    const msg = choice.message || {};
     const out = String(msg.content || '').trim();
+    if (choice.finish_reason === 'length') {
+      console.log('[ai] truncated (finish_reason=length) - token budget too small, response:', JSON.stringify(out.slice(0, 200)));
+      fs.writeFileSync('/tmp/ai-resume.txt', '');
+      process.exit(0);
+    }
     if (!out) {
       console.log('[ai] empty content - full response:');
       console.log(text.slice(0, 1500));
