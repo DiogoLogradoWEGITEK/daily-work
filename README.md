@@ -1,45 +1,46 @@
 # daily-work
 
-A lightweight GitHub Pages page that shows everything you did **since the last standup**: all your commits and your merged PRs, grouped by repo, with a ready-to-read speech draft you can copy.
+A GitHub Pages **experiment in personal activity feeds**: a static page that lists everything you committed and every PR you merged in the last day, straight from the GitHub search API, cached as JSON and rendered with zero backend.
 
-Born from [DailyDevTeamOrganizer](https://github.com/) — same fetch architecture (scheduled workflow → Gist cache → static page), but focused on one person instead of the whole team.
+> Disclaimer: this is a scratch repo for testing the GitHub search + Gist caching pattern. Don't expect polish.
 
 ## Features
 
-- **Window "since last standup"** - commits and merged PRs from yesterday's standup time (timezone-aware) until now; the Monday run covers the weekend
+- **Rolling daily window** - commits and merged PRs from yesterday at a configurable hour (timezone-aware) until now; the Monday run covers the weekend
 - **Commit timeline** grouped by repo, chronological, each linked to the commit; commit body shown as detail line when present
 - **PR cards** - repo, `branch → base`, number/title, body text (falls back to the last 5 commit headlines when no body is written), merged/open badge
-- **Speech draft** - client-side template builder that groups commits by repo and type (`feat` → "worked on", `fix` → "fixed", ...), lists merged/open PRs, one-click copy. No AI needed
-- AI speech slot - the `speech` field in `daily-data.json` is marked `TODO: AI RESUME` (workflow + page + example data); until it is filled, a no-AI template builds the draft
+- **Text digest** - client-side template builder that groups commits by repo and type (`feat` → "new", `fix` → "fixes", ...), lists merged/open PRs, one-click copy
+- AI digest slot - the `speech` field in `daily-data.json` is marked `TODO: AI RESUME` (workflow + page + example data); until it is filled, a template builds the draft
 
 ## Setup
 
 1. Create a **Gist** (any content, e.g. `daily-data.json` with `{}`) and copy its ID (the hash in the URL).
-2. Create a **PAT** with `repo` read + `gist` write scopes.
+2. Create a **PAT** with `repo` + `gist` scopes.
 3. Add secrets (**Settings → Secrets and variables → Actions**):
 
-| Secret            | Description                                                           | Example                |
-| ----------------- | --------------------------------------------------------------------- | ---------------------- |
-| `GH_USER`         | Your GitHub handle                                                    | `your-handle`          |
-| `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters                 | `org:my-org`           |
-| `GH_TOKEN`        | PAT with `repo` read scope                                             | `ghp_...`              |
-| `GIST_ID`         | Gist ID that caches the daily data                                     | `a1b2c3d4...`          |
-| `GIST_PAT`        | PAT with `gist` write scope                                            | `github_pat_...`       |
-| `STANDUP_TIME`    | Your standup time, `HH:MM` 24h                                         | `15:00`                |
-| `STANDUP_TZ`      | IANA timezone of the standup                                           | `Europe/Lisbon`        |
+| Secret            | Description                                                            | Example         |
+| ----------------- | ---------------------------------------------------------------------- | --------------- |
+| `GH_USER`         | GitHub handle to query                                                  | `your-handle`   |
+| `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters                  | `org:my-org`    |
+| `GH_TOKEN`        | PAT with `repo` + `gist` scopes                                         | `ghp_...`       |
+| `GIST_ID`         | Gist ID that caches the JSON                                            | `a1b2c3d4...`   |
+| `GIST_PAT`        | Optional; falls back to `GH_TOKEN`                                      |                 |
+| `STANDUP_TIME`    | Window start, `HH:MM` 24h                                               | `15:00`         |
+| `STANDUP_TZ`      | IANA timezone of the window start                                       | `Europe/Lisbon` |
 
-4. Push to `main` - `deploy.yml` publishes the page; `fetch-daily-work.yml` runs Mon-Fri at 05:23 UTC (manual trigger available in **Actions → Fetch Daily Work**, with an optional `since` override).
+4. Enable **Settings → Pages → Source: GitHub Actions**, then push to `main`.
+5. Run **Actions → Fetch Daily Work** manually once (optional `since` override for the window start).
 
 ## Local preview
 
-Open `index.html` directly - with no `gistId` configured it loads `daily-data.example.js` mock data so you can see the layout and speech builder without any setup.
+Open `index.html` directly - with no `gistId` configured it loads `daily-data.example.js` mock data so you can see the layout and digest builder without any setup.
 
 ## Workflows
 
 | Workflow               | Schedule          | Purpose                                                                |
 | ---------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `deploy.yml`           | On push to `main` | Builds and deploys to GitHub Pages, injects secrets, stamps git SHA     |
-| `fetch-daily-work.yml` | Mon-Fri 05:23 UTC | Fetches your commits + merged PRs since last standup into the Gist      |
+| `deploy.yml`           | On push to `main` | Deploys to GitHub Pages, injects secrets, stamps git SHA                |
+| `fetch-daily-work.yml` | Mon-Fri 05:23 UTC | Fetches commits + merged PRs since the window start into the Gist       |
 
 ## Notes & limitations
 

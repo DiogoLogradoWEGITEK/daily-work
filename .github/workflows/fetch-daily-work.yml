@@ -2,28 +2,28 @@ name: Fetch Daily Work
 
 on:
   schedule:
-    - cron: "23 5 * * 1-5" # 05:23 UTC — quiet window, well before the 15:00 Portugal standup
+    - cron: "23 5 * * 1-5" # 05:23 UTC — quiet window, early morning
   workflow_dispatch:
     inputs:
       since:
-        description: "ISO start of window (e.g. 2026-09-10T15:00:00Z). Empty = since last standup."
+        description: "ISO start of window (e.g. 2026-09-10T15:00:00Z). Empty = yesterday at window start."
         required: false
         default: ""
 
 # Required secrets:
-#   GH_USER            — your GitHub handle (commits and PRs are fetched for this user)
-#   STANDUP_TIME       — your standup time, "HH:MM" 24h format (default 15:00)
-#   STANDUP_TZ         — IANA timezone of standup time (default Europe/Lisbon)
+#   GH_USER            — GitHub handle to query commits and PRs for
+#   STANDUP_TIME       — daily window start, "HH:MM" 24h format (default 15:00)
+#   STANDUP_TZ         — IANA timezone of the window start (default Europe/Lisbon)
 #   GH_SEARCH_SCOPE    — GitHub search scope, space-separated. Supports orgs and/or repos:
 #                        e.g.: "org:my-org" or "org:my-org org:another-org" or "repo:owner/repo1 repo:owner/repo2"
-#   GH_TOKEN           — PAT with `repo` read scope (to search commits and PRs in private repos)
+#   GH_TOKEN           — PAT with `repo` + `gist` scopes (search + gist cache)
 #   GIST_ID            — Gist ID where results are cached
-#   GIST_PAT           — PAT with `gist` write scope
+#   GIST_PAT           — optional; falls back to GH_TOKEN
 #
 # Notes:
 #   - The commit search API only indexes commits on the DEFAULT branch. Work on
 #     feature branches is still captured via PR commit headlines below.
-#   - Weekends: the Monday run computes "since last standup" as Friday 15:00.
+#   - Weekends: the Monday run uses Friday's window start as SINCE.
 jobs:
   fetch-daily:
     runs-on: ubuntu-latest
@@ -39,19 +39,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compute window (since last standup)
+      - name: Compute window
         run: |
           # Manual override wins
           if [ -n "${{ github.event.inputs.since }}" ]; then
             SINCE="${{ github.event.inputs.since }}"
             echo "Window overridden manually: $SINCE"
           else
-            STANDUP_TIME="${STANDUP_TIME:-15:00}"
-            STANDUP_TZ="${STANDUP_TZ:-Europe/Lisbon}"
-            # Yesterday's standup time, rendered in the standup timezone with its
+            WINDOW_START="${STANDUP_TIME:-15:00}"
+            WINDOW_TZ="${STANDUP_TZ:-Europe/Lisbon}"
+            # Yesterday's window start, rendered in its timezone with its
             # UTC offset (e.g. 2026-09-10T15:00:00+01:00) — valid ISO 8601 for search
-            SINCE=$(TZ="$STANDUP_TZ" date -d "yesterday $STANDUP_TIME" +%Y-%m-%dT%H:%M:%S%:z)
-            echo "Standup $STANDUP_TIME $STANDUP_TZ yesterday → since $SINCE"
+            SINCE=$(TZ="$WINDOW_TZ" date -d "yesterday $WINDOW_START" +%Y-%m-%dT%H:%M:%S%:z)
+            echo "Window starts $WINDOW_START $WINDOW_TZ → since $SINCE"
           fi
           echo "SINCE=$SINCE" >> "$GITHUB_ENV"
           echo "UNTIL=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
@@ -61,6 +61,7 @@ jobs:
           set -e
           SCOPE="${GH_SEARCH_SCOPE:-}"
           TARGET_USER="${GH_USER:-${GITHUB_REPOSITORY_OWNER}}"
+          GIST_PAT="${GIST_PAT:-$GH_TOKEN}"
           COMMIT_QUERY="author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}"
           PR_QUERY="is:pr is:merged author:${TARGET_USER} ${SCOPE} merged:>=${SINCE}"
 

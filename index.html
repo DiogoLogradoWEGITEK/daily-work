@@ -334,7 +334,7 @@
       if (openPrs.length) {
         lines.push('PRs still open: ' + openPrs.map(p => '#' + p.number + ' ' + p.title).join(', ') + '.');
       }
-      if (!lines.length) lines.push('No commits or PRs since the last standup.');
+      if (!lines.length) lines.push('No commits or PRs since yesterday.');
       return lines.join('\n');
     }
 
@@ -344,7 +344,6 @@
         el.innerHTML = '<div class="empty"><div class="big">🛰️</div>No data yet — run the fetch workflow or check the GIST_ID config.</div>';
         return;
       }
-
       document.getElementById('title').innerHTML = 'Daily <span class="accent">Work</span>';
       document.getElementById('window').textContent = formatWindow(dailyData.window);
       document.getElementById('updated').textContent =
@@ -388,7 +387,7 @@
           '</div>';
       });
 
-      if (!html) html = '<div class="empty"><div class="big">☕</div>Nothing here since the last standup.</div>';
+      if (!html) html = '<div class="empty"><div class="big">☕</div>Nothing here since yesterday.</div>';
       el.innerHTML = html;
 
       // TODO: AI RESUME — dailyData.speech is preferred once the fetch workflow fills it (GitHub Models);
