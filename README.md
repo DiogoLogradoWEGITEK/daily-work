@@ -18,15 +18,15 @@ A GitHub Pages **experiment in personal activity feeds**: a static page that lis
 2. Create a **PAT** with `repo` + `gist` scopes.
 3. Add secrets (**Settings → Secrets and variables → Actions**):
 
-| Secret            | Description                                                            | Example         |
-| ----------------- | ---------------------------------------------------------------------- | --------------- |
-| `GH_USER`         | GitHub handle to query                                                  | `your-handle`   |
-| `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters                  | `org:my-org`    |
-| `GH_TOKEN`        | PAT with `repo` + `gist` scopes                                         | `ghp_...`       |
-| `GIST_ID`         | Gist ID that caches the JSON                                            | `a1b2c3d4...`   |
-| `GIST_PAT`        | Optional; falls back to `GH_TOKEN`                                      |                 |
-| `STANDUP_TIME`    | Window start, `HH:MM` 24h                                               | `15:00`         |
-| `STANDUP_TZ`      | IANA timezone of the window start                                       | `Europe/Lisbon` |
+| Secret            | Description                                            | Example         |
+| ----------------- | ------------------------------------------------------ | --------------- |
+| `GH_USER`         | GitHub handle to query                                 | `your-handle`   |
+| `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters | `org:my-org`    |
+| `GH_TOKEN`        | PAT with `repo` + `gist` scopes                        | `ghp_...`       |
+| `GIST_ID`         | Gist ID that caches the JSON                           | `a1b2c3d4...`   |
+| `GIST_PAT`        | Optional; falls back to `GH_TOKEN`                     |                 |
+| `STANDUP_TIME`    | Window start, `HH:MM` 24h                              | `15:00`         |
+| `STANDUP_TZ`      | IANA timezone of the window start                      | `Europe/Lisbon` |
 
 4. Enable **Settings → Pages → Source: GitHub Actions**, then push to `main`.
 5. Run **Actions → Fetch Daily Work** manually once (optional `since` override for the window start).
@@ -37,10 +37,10 @@ Open `index.html` directly - with no `gistId` configured it loads `daily-data.ex
 
 ## Workflows
 
-| Workflow               | Schedule          | Purpose                                                                |
-| ---------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `deploy.yml`           | On push to `main` | Deploys to GitHub Pages, injects secrets, stamps git SHA                |
-| `fetch-daily-work.yml` | Mon-Fri 05:23 UTC | Fetches commits + merged PRs since the window start into the Gist       |
+| Workflow               | Schedule          | Purpose                                                           |
+| ---------------------- | ----------------- | ----------------------------------------------------------------- |
+| `deploy.yml`           | On push to `main` | Deploys to GitHub Pages, injects secrets, stamps git SHA          |
+| `fetch-daily-work.yml` | Mon-Fri 05:23 UTC | Fetches commits + merged PRs since the window start into the Gist |
 
 ## Notes & limitations
 
