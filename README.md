@@ -44,10 +44,10 @@ The resume language defaults to Portuguese (pt-PT); set the optional `AI_LANG` s
 
 ## Workflows
 
-| Workflow               | Schedule                      | Purpose                                                    |
-| ---------------------- | ----------------------------- | ---------------------------------------------------------- |
-| `deploy.yml`           | On push to `main`             | Deploys to GitHub Pages, injects secrets, stamps git SHA   |
-| `fetch-daily-work.yml` | Mon-Fri 11:23/13:23/14:23 UTC | Fetches commits + PRs since the window start into the Gist |
+| Workflow               | Schedule                   | Purpose                                                    |
+| ---------------------- | -------------------------- | ---------------------------------------------------------- |
+| `deploy.yml`           | On push to `main`          | Deploys to GitHub Pages, injects secrets, stamps git SHA   |
+| `fetch-daily-work.yml` | Mon-Fri 13:23 UTC + jitter | Fetches commits + PRs since the window start into the Gist |
 
 ## Notes & limitations
 

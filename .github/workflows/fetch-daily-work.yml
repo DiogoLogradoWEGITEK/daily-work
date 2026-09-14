@@ -2,7 +2,7 @@ name: Fetch Daily Work
 
 on:
   schedule:
-    - cron: "23 11,13,14 * * 1-5" # hourly-ish 11:23, 13:23, 14:23 UTC - 12:23/14:23/15:23 Lisbon, right before the standup
+    - cron: "23 13 * * 1-5" # single daily run - 13:23 UTC is 14:23 Lisbon in summer and 13:23 in winter, always inside the 12:00-15:00 standup window; :23 avoids on-the-hour scheduler congestion
   workflow_dispatch:
     inputs:
       since:
@@ -81,6 +81,11 @@ jobs:
       - name: Fetch commits and PRs, cache to Gist
         run: |
           set -e
+          # Small random jitter (0-3 min) on top of the :23 offset - one run per
+          # day at an effectively random moment inside the standup window
+          JITTER=$((RANDOM % 180))
+          echo "Jitter: sleeping ${JITTER}s"
+          sleep "$JITTER"
           SCOPE="${GH_SEARCH_SCOPE:-}"
           TARGET_USER="${GH_USER:-${GITHUB_REPOSITORY_OWNER}}"
           COMMIT_QUERY="author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}"
