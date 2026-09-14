@@ -18,7 +18,9 @@ on:
 #                        e.g.: "org:my-org" or "org:my-org org:another-org" or "repo:owner/repo1 repo:owner/repo2"
 #   GH_TOKEN           — PAT with `repo` + `gist` scopes (search + gist cache)
 #   GIST_ID            — Gist ID where results are cached
-#   GIST_PAT           — optional; falls back to GH_TOKEN
+#
+# Single-token setup: GH_TOKEN is the only credential, used for both the
+# searches and the Gist cache.
 #
 # Notes:
 #   - The commit search API only indexes commits on the DEFAULT branch. Work on
@@ -36,20 +38,18 @@ jobs:
       GH_SEARCH_SCOPE: ${{ secrets.GH_SEARCH_SCOPE }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
       GIST_ID: ${{ secrets.GIST_ID }}
-      GIST_PAT: ${{ secrets.GIST_PAT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Preflight token check
         run: |
-          GIST_PAT="${GIST_PAT:-$GH_TOKEN}"
           HTTP=$(curl -s -w '%{http_code}' -o /tmp/user.json -H "Authorization: token $GH_TOKEN" https://api.github.com/user) || true
           echo "GH_TOKEN check: HTTP $HTTP - $(jq -r '.login // .message' /tmp/user.json)"
-          HTTP=$(curl -s -w '%{http_code}' -o /tmp/gist-check.json -H "Authorization: token $GIST_PAT" "https://api.github.com/gists/$GIST_ID") || true
-          echo "GIST_PAT check: HTTP $HTTP - $(jq -r '.id // .message' /tmp/gist-check.json)"
+          HTTP=$(curl -s -w '%{http_code}' -o /tmp/gist-check.json -H "Authorization: token $GH_TOKEN" "https://api.github.com/gists/$GIST_ID") || true
+          echo "Gist access check: HTTP $HTTP - $(jq -r '.id // .message' /tmp/gist-check.json)"
           if [ "$HTTP" != "200" ]; then
-            echo "::warning::Gist preflight failed - GIST_PAT bad, missing, or lacking gist scope"
+            echo "::warning::Gist preflight failed - GH_TOKEN missing gist scope or GIST_ID wrong"
           fi
 
       - name: Compute window
@@ -81,7 +81,6 @@ jobs:
           set -e
           SCOPE="${GH_SEARCH_SCOPE:-}"
           TARGET_USER="${GH_USER:-${GITHUB_REPOSITORY_OWNER}}"
-          GIST_PAT="${GIST_PAT:-$GH_TOKEN}"
           COMMIT_QUERY="author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}"
           PR_MERGED_QUERY="is:pr is:merged author:${TARGET_USER} ${SCOPE} merged:>=${SINCE}"
           PR_OPEN_QUERY="is:pr is:open author:${TARGET_USER} ${SCOPE} updated:>=${SINCE}"
@@ -182,11 +181,11 @@ jobs:
             '{updatedAt:$updatedAt, window:{since:$since, until:$until}, commits:($commits|fromjson), prs:($prs|fromjson), speech:""}' \
           > /tmp/daily-data.json
 
-          # Patch Gist
+          # Patch Gist (single token: GH_TOKEN)
           HTTP=$(jq -n --rawfile content /tmp/daily-data.json \
             '{files: {"daily-data.json": {content: $content}}}' \
           | curl -s -w '%{http_code}' -o /tmp/gist-resp.json -X PATCH "https://api.github.com/gists/$GIST_ID" \
-              -H "Authorization: token $GIST_PAT" \
+              -H "Authorization: token $GH_TOKEN" \
               -H "Content-Type: application/json" \
               -d @-) || true
           if [ "$HTTP" = "200" ]; then

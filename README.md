@@ -22,9 +22,8 @@ A GitHub Pages **experiment in personal activity feeds**: a static page that lis
 | ----------------- | ------------------------------------------------------ | --------------- |
 | `GH_USER`         | GitHub handle to query                                 | `your-handle`   |
 | `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters | `org:my-org`    |
-| `GH_TOKEN`        | PAT with `repo` + `gist` scopes                        | `ghp_...`       |
-| `GIST_ID`         | Gist ID that caches the JSON                           | `a1b2c3d4...`   |
-| `GIST_PAT`        | Optional; falls back to `GH_TOKEN`                     |                 |
+| `GH_TOKEN`        | PAT with `repo` + `gist` scopes - the only credential   | `ghp_...`       |
+| `GIST_ID`         | Gist ID that caches the JSON                            | `a1b2c3d4...`   |
 | `STANDUP_TIME`    | Window start, `HH:MM` 24h                              | `15:00`         |
 | `STANDUP_TZ`      | IANA timezone of the window start                      | `Europe/Lisbon` |
 
