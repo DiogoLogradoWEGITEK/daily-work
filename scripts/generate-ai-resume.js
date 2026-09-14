@@ -48,6 +48,7 @@ function main() {
         '  Pull requests:',
         '- Each bullet: short plain sentence describing what I did (rewrite the commit/PR title as a natural action, mention the repo only when useful)',
         '- Merge commits and their PR titles describe the same work: mention each piece of work only once, under Pull requests',
+        '- If a section ends up with no bullets after deduplication, omit that section heading entirely',
         '- Skip trivia: dependency bumps, typo fixes, CI-only tweaks get one short mention at most',
         '- End with one line starting with "Next:" listing what I plan to do next, inferred from any open PRs or follow-up hints, otherwise "carry on with current tasks"',
         '- Output only the script text, no markdown, no code fences'
@@ -66,6 +67,7 @@ function main() {
         '  Pull requests:',
         '- Cada bullet: frase curta e simples a descrever o que fiz (reescreve o título do commit/PR como uma ação natural, menciona o repo só quando for útil)',
         '- Commits de merge e os títulos dos PRs descrevem o mesmo trabalho: menciona cada trabalho uma única vez, em Pull requests',
+        '- Se uma secção ficar sem bullets depois de remover duplicados, omite completamente o título dessa secção',
         '- Ignora trivialidades: bumps de dependências, fixes de typos, ajustes de CI têm no máximo uma menção curta',
         '- Termina com uma linha que começa por "A seguir:" com o que vou fazer a seguir, deduzido dos PRs abertos ou pistas de follow-up, senão "continuar com as tarefas atuais"',
         '- Escreve apenas o texto do guião, sem markdown, sem code fences'
