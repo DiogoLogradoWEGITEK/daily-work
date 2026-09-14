@@ -22,8 +22,8 @@ A GitHub Pages **experiment in personal activity feeds**: a static page that lis
 | ----------------- | ------------------------------------------------------ | --------------- |
 | `GH_USER`         | GitHub handle to query                                 | `your-handle`   |
 | `GH_SEARCH_SCOPE` | Search scope, space-separated `org:` / `repo:` filters | `org:my-org`    |
-| `GH_TOKEN`        | PAT with `repo` + `gist` scopes - the only credential   | `ghp_...`       |
-| `GIST_ID`         | Gist ID that caches the JSON                            | `a1b2c3d4...`   |
+| `GH_TOKEN`        | PAT with `repo` + `gist` scopes - the only credential  | `ghp_...`       |
+| `GIST_ID`         | Gist ID that caches the JSON                           | `a1b2c3d4...`   |
 | `STANDUP_TIME`    | Window start, `HH:MM` 24h                              | `15:00`         |
 | `STANDUP_TZ`      | IANA timezone of the window start                      | `Europe/Lisbon` |
 
@@ -39,7 +39,7 @@ Open `index.html` directly - with no `gistId` configured it loads `daily-data.ex
 | Workflow               | Schedule          | Purpose                                                           |
 | ---------------------- | ----------------- | ----------------------------------------------------------------- |
 | `deploy.yml`           | On push to `main` | Deploys to GitHub Pages, injects secrets, stamps git SHA          |
-| `fetch-daily-work.yml` | Mon-Fri 05:23 UTC | Fetches commits + merged PRs since the window start into the Gist |
+| `fetch-daily-work.yml` | Mon-Fri 11:23/13:23/14:23 UTC | Fetches commits + PRs since the window start into the Gist |
 
 ## Notes & limitations
 

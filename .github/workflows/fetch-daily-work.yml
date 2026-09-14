@@ -2,7 +2,7 @@ name: Fetch Daily Work
 
 on:
   schedule:
-    - cron: "23 5 * * 1-5" # 05:23 UTC — quiet window, early morning
+    - cron: "23 11,13,14 * * 1-5" # hourly-ish 11:23, 13:23, 14:23 UTC - 12:23/14:23/15:23 Lisbon, right before the standup
   workflow_dispatch:
     inputs:
       since:
