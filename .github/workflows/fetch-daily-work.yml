@@ -81,11 +81,14 @@ jobs:
       - name: Fetch commits and PRs, cache to Gist
         run: |
           set -e
-          # Small random jitter (0-3 min) on top of the :23 offset - one run per
-          # day at an effectively random moment inside the standup window
-          JITTER=$((RANDOM % 180))
-          echo "Jitter: sleeping ${JITTER}s"
-          sleep "$JITTER"
+          # Small random jitter (0-3 min) on scheduled runs only - spreads the
+          # daily run across the standup window and avoids peak-hour congestion.
+          # Manual runs (workflow_dispatch) skip it so a refresh is immediate.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            JITTER=$((RANDOM % 180))
+            echo "Jitter: sleeping ${JITTER}s"
+            sleep "$JITTER"
+          fi
           SCOPE="${GH_SEARCH_SCOPE:-}"
           TARGET_USER="${GH_USER:-${GITHUB_REPOSITORY_OWNER}}"
           COMMIT_QUERY="author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}"

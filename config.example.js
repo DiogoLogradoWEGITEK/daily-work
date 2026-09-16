@@ -3,6 +3,7 @@
 if (!window.CONFIG) {
   window.CONFIG = {
     github: "YOUR_GITHUB_USER", // your GitHub handle — also set via GH_USER secret
+    repo: "daily-work",        // repo name — used by the refresh button
     gistId: "YOUR_GIST_ID",     // set via GIST_ID secret
     standupTime: "15:00",       // set via STANDUP_TIME secret
     standupTz: "Europe/Lisbon"  // set via STANDUP_TZ secret

@@ -36,8 +36,9 @@ jobs:
           STANDUP_TIME: ${{ secrets.STANDUP_TIME }}
           STANDUP_TZ: ${{ secrets.STANDUP_TZ }}
         run: |
-          printf 'window.CONFIG = { github: "%s", gistId: "%s", standupTime: "%s", standupTz: "%s" };\n' \
+          printf 'window.CONFIG = { github: "%s", repo: "%s", gistId: "%s", standupTime: "%s", standupTz: "%s" };\n' \
             "${GH_USER}" \
+            "${GITHUB_REPOSITORY#*/}" \
             "${GIST_ID}" \
             "${STANDUP_TIME:-15:00}" \
             "${STANDUP_TZ:-Europe/Lisbon}" > config.js
