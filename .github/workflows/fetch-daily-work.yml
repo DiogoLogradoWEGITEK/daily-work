@@ -2,7 +2,7 @@ name: Fetch Daily Work + AI Resume
 
 on:
   schedule:
-    - cron: "23 13 * * 1-5" # single daily run - 13:23 UTC is 14:23 Lisbon in summer and 13:23 in winter, always inside the 12:00-15:00 standup window; :23 avoids on-the-hour scheduler congestion
+    - cron: "0 8 * * 1-5" # fires EARLY (08:00 UTC) because github's scheduler has been running this hours late; the job then sleeps until 14:05 Lisbon before fetching, so the data lands inside the 12:00-15:00 standup window regardless of delay
   workflow_dispatch:
     inputs:
       since:
@@ -78,17 +78,25 @@ jobs:
           echo "SINCE=$SINCE" >> "$GITHUB_ENV"
           echo "UNTIL=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
 
+      - name: Wait for standup window (scheduled runs only)
+        if: github.event_name == 'schedule'
+        run: |
+          # GitHub's scheduler has been starting this workflow hours late, so the
+          # cron fires early and the job itself waits until 14:05 Lisbon. Sleeping
+          # on a public repo costs nothing and pins the fetch time precisely.
+          TARGET_EPOCH=$(TZ=Europe/Lisbon date -d 'today 14:05' +%s)
+          NOW_EPOCH=$(date +%s)
+          WAIT=$((TARGET_EPOCH - NOW_EPOCH))
+          if [ "$WAIT" -gt 0 ]; then
+            echo "Waiting $((WAIT / 60)) min until 14:05 Lisbon"
+            sleep "$WAIT"
+          else
+            echo "Already past 14:05 Lisbon ($WAIT s) - fetching now"
+          fi
+
       - name: Fetch commits and PRs, cache to Gist
         run: |
           set -e
-          # Small random jitter (0-3 min) on scheduled runs only - spreads the
-          # daily run across the standup window and avoids peak-hour congestion.
-          # Manual runs (workflow_dispatch) skip it so a refresh is immediate.
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            JITTER=$((RANDOM % 180))
-            echo "Jitter: sleeping ${JITTER}s"
-            sleep "$JITTER"
-          fi
           SCOPE="${GH_SEARCH_SCOPE:-}"
           TARGET_USER="${GH_USER:-${GITHUB_REPOSITORY_OWNER}}"
           COMMIT_QUERY="author:${TARGET_USER} ${SCOPE} author-date:>=${SINCE}"
