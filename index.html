@@ -375,22 +375,21 @@
       const usable = W - padL - padR;
       const colorMap = new Map();
 
-      const x = t => padL + ((Date.parse(t) - t0) / span) * usable;
+      const xAt = t => padL + ((Date.parse(t) - t0) / span) * usable;
       let side = 1; // alternate labels above/below the line
 
       let dots = '';
       list.forEach((c, i) => {
-        const cx = padL + ((Date.parse(c.date) - t0) / span) * usable;
+        const cx = xAt(c.date).toFixed(1);
         const color = colorMap.get(c.repo) || (colorMap.set(c.repo, REPO_COLORS[(colorMap.size) % REPO_COLORS.length]), colorMap.get(c.repo));
         const above = side === 1; side = -side;
         const labelY = above ? midY - 34 : midY + 46;
-        const stemY2 = above ? midY - 22 : midY + 22;
         const short = escapeHtml((c.headline || '').slice(0, 34) + ((c.headline || '').length > 34 ? '…' : ''));
         dots +=
-          '<line x1="' + x.toFixed(1) + '" y1="' + midY + '" x2="' + x.toFixed(1) + '" y2="' + labelY + '" stroke="#ccc" stroke-width="1"/>' +
-          '<text x="' + x.toFixed(1) + '" y="' + (above ? labelY - 4 : labelY + 10) + '" text-anchor="middle" class="tl-label">' + short + '</text>' +
-          '<text x="' + x.toFixed(1) + '" y="' + (above ? labelY - 16 : labelY + 22) + '" text-anchor="middle" class="tl-time">' + fmtTime(c.date) + '</text>' +
-          '<a href="' + escapeHtml(c.url || '#') + '" target="_blank" rel="noopener"><circle cx="' + x.toFixed(1) + '" cy="' + midY + '" r="6" fill="' + color + '"><title>' + escapeHtml(c.headline + ' · ' + c.repo + (c.branch ? ' · ' + c.branch : '')) + '</title></circle></a>';
+          '<line x1="' + cx + '" y1="' + midY + '" x2="' + cx + '" y2="' + labelY + '" stroke="#ccc" stroke-width="1"/>' +
+          '<text x="' + cx + '" y="' + (above ? labelY - 4 : labelY + 10) + '" text-anchor="middle" class="tl-label">' + short + '</text>' +
+          '<text x="' + cx + '" y="' + (above ? labelY - 16 : labelY + 22) + '" text-anchor="middle" class="tl-time">' + fmtTime(c.date) + '</text>' +
+          '<a href="' + escapeHtml(c.url || '#') + '" target="_blank" rel="noopener"><circle cx="' + cx + '" cy="' + midY + '" r="6" fill="' + color + '"><title>' + escapeHtml(c.headline + ' · ' + c.repo + (c.branch ? ' · ' + c.branch : '')) + '</title></circle></a>';
       });
 
       // day markers on the axis
