@@ -22,7 +22,7 @@ function main() {
 
   const commitLines = commits
     .filter(c => !/^Merge pull request /i.test(c.headline || ''))
-    .map(c => `[${c.repo}] ${c.headline}${(c.message || '').includes('\n') ? ' - ' + c.message.split('\n').slice(1).join(' ').trim().slice(0, 200) : ''}`);
+    .map(c => `[${c.repo}${c.branch ? '/' + c.branch : ''}] ${c.headline}${(c.message || '').includes('\n') ? ' - ' + c.message.split('\n').slice(1).join(' ').trim().slice(0, 200) : ''}`);
   const prLines = prs.map(p => {
     const state = (p.state === 'merged' || p.mergedAt) ? 'merged' : 'open';
     return `[${p.repo}] #${p.number} (${state}) ${p.title}${p.body ? ' - ' + String(p.body).slice(0, 200) : ''}`;
@@ -66,6 +66,7 @@ function main() {
         '  Commits:',
         '  Pull requests:',
         '- Cada bullet: frase curta e simples a descrever o que fiz (reescreve o título do commit/PR como uma ação natural, menciona o repo só quando for útil)',
+        '- Se um commit estava num branch de feature, menciona-o só se ajudar a contextualizar (ex: "no branch de pagamentos")',
         '- Commits de merge e os títulos dos PRs descrevem o mesmo trabalho: menciona cada trabalho uma única vez, em Pull requests',
         '- Se uma secção ficar sem bullets depois de remover duplicados, omite completamente o título dessa secção',
         '- Ignora trivialidades: bumps de dependências, fixes de typos, ajustes de CI têm no máximo uma menção curta',

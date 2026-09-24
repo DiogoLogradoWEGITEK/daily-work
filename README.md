@@ -6,8 +6,8 @@ A GitHub Pages **experiment in personal activity feeds**: a static page that lis
 
 ## Features
 
-- **Rolling daily window** - commits and merged PRs from yesterday at a configurable hour (timezone-aware) until now; the Monday run covers the weekend
-- **Commit timeline** grouped by repo, chronological, each linked to the commit; commit body shown as detail line when present
+- **Rolling daily window** - commits and PRs from yesterday at a configurable hour (timezone-aware) until now; the Monday run covers the weekend
+- **Commit timeline** - sideways git-graph-style view: one dot per commit on a time axis (2-day max span), dots colored per repo, titles above/below alternating, hover for full message + branch; captures **all branches** via the GitHub Events API + compare (not just the default branch like search), filtered to the `org:` repos in `GH_SEARCH_SCOPE`
 - **PR cards** - repo, `branch → base`, number/title, body text (falls back to the last 5 commit headlines when no body is written), merged/open badge
 - **Text digest** - client-side template builder that groups commits by repo and type (`feat` → "new", `fix` → "fixes", ...), lists merged/open PRs, one-click copy
 - AI digest slot - the `speech` field in `daily-data.json` is marked `TODO: AI RESUME` (workflow + page + example data); until it is filled, a template builds the draft

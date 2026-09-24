@@ -40,6 +40,7 @@ jobs:
       GIST_ID: ${{ secrets.GIST_ID }}
       GROQ_KEY: ${{ secrets.GROQ_KEY }}
       AI_MODEL: ${{ secrets.AI_MODEL }}
+      AI_LANG: ${{ secrets.AI_LANG }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,6 +122,18 @@ jobs:
             echo "[]" > /tmp/commits.json
           fi
           echo "Commits found: $(jq 'length' /tmp/commits.json)"
+
+          # All pushed commits (any branch) via events API + compare, org-filtered.
+          # Falls back to search-based commits (/tmp/commits.json) if it fails.
+          # Event commits have a `branch` field; search commits do not.
+          TARGET_USER="${TARGET_USER:-${GH_USER:-${GITHUB_REPOSITORY_OWNER}}}" node "${GITHUB_WORKSPACE}/scripts/fetch-events-commits.js" || echo "::warning::events commit fetch failed - falling back to search"
+          EV_COUNT=$(jq 'length' /tmp/events-commits.json 2>/dev/null || echo 0)
+          if [ "$EV_COUNT" -gt 0 ]; then
+            echo "Using events-based commits ($EV_COUNT)"
+            cp /tmp/events-commits.json /tmp/commits.json
+          else
+            echo "Events fetch empty - keeping search-based commits ($(jq 'length' /tmp/commits.json))"
+          fi
 
           # PRs (GraphQL — same query family as DailyDevTeamOrganizer).
           # Two searches: merged since window + open (in-progress work shows in the digest).
